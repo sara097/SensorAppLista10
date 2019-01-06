@@ -1,0 +1,18 @@
+<resources>
+    <string name="app_name">Lista9</string>
+    <string name="btnInfo">Start/Stop</string>
+    <string name="zeroValue">0</string>
+    <string name="btnInfo2">Draw</string>
+    <string name="btnInfo3">Save data to file</string>
+    <string name="txtTitle">Acceleration X Y Z</string>
+    <string name="fileNameHint">File name</string>
+    <string name="btnInfo4">Clear</string>
+    <string name="btnInfo5">Draw from saved data</string>
+    <string name="btnInfo6">Draw from current data</string>
+    <string name="tryAgain">Try again</string>
+    <string name="titleLabel">Choose sensor to use</string>
+    <string name="btnAccelerometer">Accelerometer</string>
+    <string name="btnGyroscope">Gyroscope</string>
+    <string name="gyrocsopeTitle">Angular speed X Y Z</string>
+    <string name="startBtn">Start</string>
+</resources>
