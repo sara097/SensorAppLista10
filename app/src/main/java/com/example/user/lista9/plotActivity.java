@@ -27,20 +27,24 @@ public class plotActivity extends Activity {
     //Klasa służąca do obsługiwania aktywności, w której rysowany jest wykres danych zebranych z akcelerometru
 
     //atrybuty klasy
+    //serie danych zbieranych aktualnie
     private XYSeries seriesX;
     private XYSeries seriesY;
     private XYSeries seriesZ;
+    //serie danych odczytanych z pliku
     private XYSeries readSeriesX;
     private XYSeries readSeriesY;
     private XYSeries readSeriesZ;
+    //elementy potrzebne do wykresu
     private XYMultipleSeriesRenderer mrenderer;
-    private  LinearLayout chartLayout;
+    private LinearLayout chartLayout;
+    //elementy GUI
     private EditText fileName;
     private TextView stepText;
-    private ArrayList<Double>  valuesR;
-    private int steps;
-    private double [] valsC;
-    private double [] valsR;
+
+    private ArrayList<Double> valuesR; //lista tablicowa na wartosci odczytane z pliku
+    protected int steps; //licznik kroków
+    private double[] valsC; //tablica na wartosci zebrane przed chwilą
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -49,17 +53,16 @@ public class plotActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_plot);
 
-        steps=0; //inicjacja licznika kroków
-        valuesR=new ArrayList<>(); //inicjacja listy tablicowej, służącej do przechowywania danych odczytanych z pliku
+        steps = 0; //inicjacja licznika kroków
+        valuesR = new ArrayList<>(); //inicjacja listy tablicowej, służącej do przechowywania danych odczytanych z pliku
 
         //pobranie danych przekazanych przez aktywność Acceleration
         Bundle extras = getIntent().getExtras();
-        if(extras !=null)
-        {
-            seriesX= (XYSeries) extras.getSerializable("dataX");
-            seriesY= (XYSeries) extras.getSerializable("dataY");
-            seriesZ= (XYSeries) extras.getSerializable("dataZ");
-            valsC=extras.getDoubleArray("steps");
+        if (extras != null) {
+            seriesX = (XYSeries) extras.getSerializable("dataX");
+            seriesY = (XYSeries) extras.getSerializable("dataY");
+            seriesZ = (XYSeries) extras.getSerializable("dataZ");
+            valsC = extras.getDoubleArray("steps");
         }
 
         //utworzenie rendererów serii danych i doprecyzowanie wyglądu serii danych na wykresie
@@ -85,7 +88,7 @@ public class plotActivity extends Activity {
         rendererZ.setLineWidth(3);
 
         //dodanie otworzonych wczesniej rendererów do listy rendererów i ustawienie maksimów i minimów wykresu
-        mrenderer=new XYMultipleSeriesRenderer();
+        mrenderer = new XYMultipleSeriesRenderer();
         mrenderer.addSeriesRenderer(rendererX);
         mrenderer.addSeriesRenderer(rendererY);
         mrenderer.addSeriesRenderer(rendererZ);
@@ -94,23 +97,24 @@ public class plotActivity extends Activity {
         mrenderer.setShowGrid(true);
 
         //zainicjowanie elementów GUI
-        chartLayout =(LinearLayout) findViewById(R.id.chartLayout);
-        fileName =(EditText) findViewById(R.id.editTxtFileName);
+        chartLayout = (LinearLayout) findViewById(R.id.chartLayout);
+        fileName = (EditText) findViewById(R.id.editTxtFileName);
 
-        stepText=(TextView) findViewById(R.id.stepsTxt);
+        stepText = (TextView) findViewById(R.id.stepsTxt);
 
     }
 
-    public int countSteps(double [] vals){
+    public int countSteps(double[] vals) {
 
         //metoda służąca do obliczania ilości wykonanych kroków
         //parametrem metody jest tablica typu double z wartościami
-
+        steps=0;
         //metoda obliczania ilosci kroków jest bardzo przyblizona.
         //wykres jest piłokształtny, zatem sprawdzam czy punkt jest pikiem biorąc otoczenie az 5 punktów
         //jesli jest on pikiem zwiekszam licznik kroków
-        for (int i=5; i<vals.length-5; i++){
-            if(vals[i]>vals[i-5] &&vals[i]>vals[i-3] &&vals[i]>vals[i-1]  && vals[i]>vals[i+1]&& vals[i]>vals[i+3]&& vals[i]>vals[i+5]) steps++;
+        for (int i = 5; i < vals.length - 5; i++) {
+            if (vals[i] > vals[i - 5] && vals[i] > vals[i - 3] && vals[i] > vals[i - 1] && vals[i] > vals[i + 1] && vals[i] > vals[i + 3] && vals[i] > vals[i + 5])
+                steps++;
         }
 
         //metoda zwraca ilosc kroków
@@ -120,19 +124,19 @@ public class plotActivity extends Activity {
     public void drawCurrent(View view) {
         //metoda po kliknieciu ktorej rysowany jest wykres z przed chwila zebranych danych
 
-        steps=0; //zerowanie ilosci krokow
+        steps = 0; //zerowanie ilosci krokow
         chartLayout.removeAllViews(); //usuwanie tego co bylo na wykresie
         //dodanie serii danych do wykresu
-        XYMultipleSeriesDataset mdataset=new XYMultipleSeriesDataset();
+        XYMultipleSeriesDataset mdataset = new XYMultipleSeriesDataset();
         mdataset.addSeries(seriesX);
         mdataset.addSeries(seriesY);
         mdataset.addSeries(seriesZ);
 
         //wyswietlenie w TextView ilosci kroków (poprzez wywołanie metody zliczającej kroki)
-        stepText.setText(String.valueOf(countSteps(valsC))+" steps");
+        stepText.setText(String.valueOf(countSteps(valsC)) + " steps");
 
         //wyświetlenie wykresu
-        GraphicalView chartView = ChartFactory.getLineChartView(this,mdataset,mrenderer);
+        GraphicalView chartView = ChartFactory.getLineChartView(this, mdataset, mrenderer);
         chartLayout.addView(chartView);
 
 
@@ -140,34 +144,34 @@ public class plotActivity extends Activity {
 
     public void drawFromFile(View view) {
         //metoda po kliknieciu ktorej rysowany jest wykres z danych z pliku
-        steps=0; //zerowanie ilosci kroków
+        steps = 0; //zerowanie ilosci kroków
         chartLayout.removeAllViews(); //usuwanie poprzedniej zawartosci wykresu
 
         //jesli nie podano nazwy pliku wyswietlany jest odpowiedni komunikat
-        if(fileName.getText().toString().equals("")||fileName.getText().toString()==null){
-            Toast.makeText(this,"Write file name",Toast.LENGTH_LONG).show();
-        } else{
+        if (fileName.getText().toString().equals("")) {
+            Toast.makeText(this, "Write file name", Toast.LENGTH_LONG).show();
+        } else {
             //jesli nazwa pliku została podana zostaja odczytane wartosci z pliku
-            String name=fileName.getText().toString()+".txt";
+            String name = fileName.getText().toString() + ".txt";
             readData(name);
 
             //nastepnie zostają przepisane z listy tablicowej na tablice, ponieważ do metody obliczajacej kroki konieczna jest tablica
-            valsR=new double[valuesR.size()];
-            for(int i=0; i<valsR.length; i++){
-                valsR[i]=valuesR.get(i);
+            double[] valsR = new double[valuesR.size()];
+            for (int i = 0; i < valsR.length; i++) {
+                valsR[i] = valuesR.get(i);
             }
 
             //wyswietlanie obliczonej ilosci korków
-            stepText.setText(String.valueOf(countSteps(valsR))+" steps");
+            stepText.setText(String.valueOf(countSteps(valsR)) + " steps");
 
             //dodanie danych do wykresu
-            XYMultipleSeriesDataset mdataset=new XYMultipleSeriesDataset();
+            XYMultipleSeriesDataset mdataset = new XYMultipleSeriesDataset();
             mdataset.addSeries(readSeriesX);
             mdataset.addSeries(readSeriesY);
             mdataset.addSeries(readSeriesZ);
 
             //wyswietlenie wykresu
-            GraphicalView chartView = ChartFactory.getLineChartView(this,mdataset,mrenderer);
+            GraphicalView chartView = ChartFactory.getLineChartView(this, mdataset, mrenderer);
             chartLayout.addView(chartView);
             //chartView.repaint();
 
@@ -176,34 +180,34 @@ public class plotActivity extends Activity {
 
     }
 
-    public void readData(String name){
+    public void readData(String name) {
 
         //metoda służąca do odczytywanie danych z pliku
-        int counter=0;
-        double aX=0;
-        double aY=0;
-        double aZ=0;
+        int counter = 0;
+        double aX = 0;
+        double aY = 0;
+        double aZ = 0;
         //zainicjowanie serii danych
-        readSeriesX=new XYSeries("readed data X");
-        readSeriesY=new XYSeries("readed data Y");
-        readSeriesZ=new XYSeries("readed data Z");
+        readSeriesX = new XYSeries("data X");
+        readSeriesY = new XYSeries("data Y");
+        readSeriesZ = new XYSeries("data Z");
         valuesR.removeAll(valuesR); //usuniecie tego co poprzednio bylo w tablicy
         try {
             //utworzenie pliku a nastepnie InputStreamReadera i BufferedReadera
-            FileInputStream fis= openFileInput(name);
-            InputStreamReader reader=new InputStreamReader(fis);
-            BufferedReader bufferedReader=new BufferedReader(reader);
+            FileInputStream fis = openFileInput(name);
+            InputStreamReader reader = new InputStreamReader(fis);
+            BufferedReader bufferedReader = new BufferedReader(reader);
             String strLine = null;
             //jesli istnieje linia odczytanie jej zawartosci
-            if ((strLine=bufferedReader.readLine()) != null) {
+            if ((strLine = bufferedReader.readLine()) != null) {
 
                 //rozdzielenie poszczegolnych pomiarów (rozdzielone były wykrzyknikami)
                 String[] lines = strLine.split("!");
                 String[] line = null;
 
-                for (int i = 0; i < lines.length; i++) {
+                for (String line1 : lines) {
                     //wszystkie pomiary mialy po kilka wartosci rozdzielonych sredniakmi, wiec je tez rodzielamy
-                    line = lines[i].split(";");
+                    line = line1.split(";");
                     counter = Integer.valueOf(line[0]);
                     aX = Double.valueOf(line[1]);
                     aY = Double.valueOf(line[2]);
@@ -224,7 +228,7 @@ public class plotActivity extends Activity {
 
         } catch (java.io.IOException e) {
             //obsługa wyjątku wraz z wyswietleniem uzytkownikowi komunikatu
-            Toast.makeText(this, "Cannot read data",Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Cannot read data", Toast.LENGTH_LONG).show();
             e.printStackTrace();
         }
 

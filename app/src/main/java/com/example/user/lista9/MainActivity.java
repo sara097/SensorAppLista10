@@ -6,7 +6,7 @@ import android.os.Bundle;
 import android.view.View;
 
 
-public class MainActivity extends Activity  {
+public class MainActivity extends Activity {
 
     //MainActivity to aktywność odpowiadająca za ekran początkowy aplikacji
     // z tej aktywnosci mozemy przejść do pomiaru akcelerometrem oraz żyroskopem
@@ -22,7 +22,7 @@ public class MainActivity extends Activity  {
 
         //utworzenie nowych intencji
         accelerometer = new Intent(getBaseContext(), Acceleration.class);
-        gyroscope=new Intent(getBaseContext(), Gyroscope.class);
+        gyroscope = new Intent(getBaseContext(), Gyroscope.class);
     }
 
     //metoda otwierająca aktywność Accelerometer po kliknięciu przycisku

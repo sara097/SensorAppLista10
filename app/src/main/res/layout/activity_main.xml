@@ -10,7 +10,7 @@
     <TextView
         android:id="@+id/textViewLabel1"
         android:layout_width="270dp"
-        android:layout_height="69dp"
+        android:layout_height="42dp"
         android:layout_marginStart="8dp"
         android:layout_marginTop="80dp"
         android:layout_marginEnd="8dp"
@@ -36,23 +36,26 @@
         android:onClick="accelerometerClicked"
         android:text="@string/btnAccelerometer"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/btnGyroscope"
-        app:layout_constraintHorizontal_bias="0.562"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.116"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textViewLabel1"
         app:layout_constraintVertical_bias="0.0" />
 
     <Button
         android:id="@+id/btnGyroscope"
-        android:layout_width="143dp"
-        android:layout_height="95dp"
+        android:layout_width="148dp"
+        android:layout_height="100dp"
+        android:layout_marginStart="8dp"
         android:layout_marginTop="64dp"
-        android:layout_marginEnd="16dp"
+        android:layout_marginEnd="8dp"
         android:layout_marginBottom="8dp"
         android:onClick="gyroscopeClicked"
         android:text="@string/btnGyroscope"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.872"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/textViewLabel1"
         app:layout_constraintVertical_bias="0.0" />
 </android.support.constraint.ConstraintLayout>
