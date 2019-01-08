@@ -159,9 +159,11 @@ public class Acceleration extends Activity implements SensorEventListener {
 
         //w nowej intencji moge podać tablice typu double a nie listę tablicową, więc przepisuje wartości
         double[] toGive = new double[values.size()];
+
         for (int i = 0; i < toGive.length; i++) {
             toGive[i] = values.get(i);
         }
+
         //podaje dane do nowej aktywnosci
         i.putExtra("dataX", seriesX);
         i.putExtra("dataY", seriesY);

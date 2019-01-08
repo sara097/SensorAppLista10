@@ -2,6 +2,7 @@ package com.example.user.lista9;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -21,6 +22,8 @@ import org.achartengine.model.XYMultipleSeriesDataset;
 import org.achartengine.model.XYSeries;
 import org.achartengine.renderer.XYMultipleSeriesRenderer;
 import org.achartengine.renderer.XYSeriesRenderer;
+
+import java.util.ArrayList;
 
 public class Gyroscope extends Activity implements SensorEventListener {
 
@@ -50,6 +53,17 @@ public class Gyroscope extends Activity implements SensorEventListener {
     private XYMultipleSeriesRenderer mrenderer;
     private LinearLayout chartLayout;
 
+    private Intent i;//intencja do otwarcia aktywnosci z wykresem
+
+    private double[] tranformX;
+    private double[] tranformY ;
+    private double[] tranformZ;
+
+    private ArrayList<Double> valuesX=new ArrayList<>();
+    private ArrayList<Double> valuesY=new ArrayList<>();
+    private ArrayList<Double> valuesZ=new ArrayList<>();
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,6 +71,7 @@ public class Gyroscope extends Activity implements SensorEventListener {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_gyroscope);
 
+        i = new Intent(getBaseContext(), Fourier.class);
         //elementy gui
         textViewAx = (TextView) findViewById(R.id.xTxt);
         textViewAy = (TextView) findViewById(R.id.yTxt);
@@ -77,6 +92,7 @@ public class Gyroscope extends Activity implements SensorEventListener {
         myWakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "myapp:test");
 
     }
+
 
     @Override
     public void onSensorChanged(SensorEvent event) {
@@ -107,6 +123,10 @@ public class Gyroscope extends Activity implements SensorEventListener {
                 textViewAx.setText(x);
                 textViewAy.setText(y);
                 textViewAz.setText(z);
+
+                valuesX.add((double)aX);
+                valuesY.add((double)aY);
+                valuesZ.add((double)aZ);
 
                 //dodanie do serii danych wartosci skladowych prędkości kątowej
                 seriesX.add(counter, aX);
@@ -154,7 +174,7 @@ public class Gyroscope extends Activity implements SensorEventListener {
         mrenderer.addSeriesRenderer(rendererX);
         mrenderer.addSeriesRenderer(rendererY);
         mrenderer.addSeriesRenderer(rendererZ);
-        mrenderer.setYAxisMax(15);
+        mrenderer.setYAxisMax(30);
         mrenderer.setYAxisMin(-10);
         mrenderer.setShowGrid(true);
 
@@ -171,6 +191,8 @@ public class Gyroscope extends Activity implements SensorEventListener {
         //wyświetlenie wykresu
         GraphicalView chartView = ChartFactory.getLineChartView(this, mdataset, mrenderer);
         chartLayout.addView(chartView);
+
+
 
     }
 
@@ -192,5 +214,45 @@ public class Gyroscope extends Activity implements SensorEventListener {
             myWakeLock.release(); //gdy zatrzymujemy pomiar zabraniamy zbierania danych przy zablokowanym ekranie
 
         }
+    }
+
+    public void fftClicked(View view) {
+        //metoda po kliknieciu ktorej otwiera się intencja z aktywnoscia z wykresami Fouriera
+        isRunning=false;
+
+        int n=(int)(Math.log(valuesX.size())/Math.log(2.0)); //obliczanie dlugosci tablicy
+        if((2^n)<valuesX.size()) n+=1;
+        //Fast Fourier Tranformate przyjmuje macierze ktore są potęgami dwójki
+
+        int len=(int)Math.pow(2,n);
+        tranformX = new double[len];
+        tranformY = new double[len];
+        tranformZ = new double[len];
+
+        for (int i = 0; i < tranformX.length; i++) {
+            //rozmiar macierzy do tranformaty, jesli jest wiekszy niz tablicy z danymi wypełniam zerami
+            if(valuesX.size()-1<i ){
+                tranformX[i] = 0;
+                tranformY[i] = 0;
+                tranformZ[i] = 0;
+            }else{
+                tranformX[i] = valuesX.get(i);
+                tranformY[i] = valuesY.get(i);
+                tranformZ[i] = valuesZ.get(i);
+            }
+
+        }
+        //obliczam tranformaty
+        double [] xTranformed=FFT.computeFFT(tranformX);
+        double [] yTranformed=FFT.computeFFT(tranformY);
+        double [] zTranformed=FFT.computeFFT(tranformZ);
+
+        //obliczone tablice przekazuje do aktywnosci
+        i.putExtra("x", xTranformed);
+        i.putExtra("y", yTranformed);
+        i.putExtra("z", zTranformed);
+        //rozpoczynam nowa aktywność
+        startActivity(i);
+
     }
 }

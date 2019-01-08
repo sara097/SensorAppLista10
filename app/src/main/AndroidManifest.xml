@@ -22,7 +22,8 @@
         </activity>
         <activity android:name=".plotActivity" />
         <activity android:name=".Acceleration" />
-        <activity android:name=".Gyroscope"></activity>
+        <activity android:name=".Gyroscope" />
+        <activity android:name=".Fourier"></activity>
     </application>
 
 </manifest>

@@ -15,4 +15,5 @@
     <string name="btnGyroscope">Gyroscope</string>
     <string name="gyrocsopeTitle">Angular speed X Y Z</string>
     <string name="startBtn">Start</string>
+    <string name="btnTransform">FFT</string>
 </resources>
