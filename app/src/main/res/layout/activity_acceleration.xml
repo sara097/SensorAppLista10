@@ -10,13 +10,10 @@
         android:id="@+id/btnAction"
         android:layout_width="wrap_content"
         android:layout_height="47dp"
-        android:layout_marginStart="8dp"
-        android:layout_marginTop="48dp"
-        android:layout_marginEnd="8dp"
+        android:layout_marginStart="148dp"
+        android:layout_marginTop="44dp"
         android:onClick="onClickAction"
         android:text="@string/btnInfo"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.507"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/accelerationTxt2" />
 
@@ -126,5 +123,18 @@
         app:layout_constraintHorizontal_bias="0.425"
         app:layout_constraintStart_toEndOf="@+id/btnPlot"
         app:layout_constraintTop_toBottomOf="@+id/btnAction" />
+
+    <TextView
+        android:id="@+id/fsTxt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="8dp"
+        app:layout_constraintBottom_toTopOf="@+id/btnClear"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/btnAction"
+        app:layout_constraintTop_toBottomOf="@+id/accelerationTxt2" />
 
 </android.support.constraint.ConstraintLayout>

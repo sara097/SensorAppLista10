@@ -45,6 +45,8 @@ public class Gyroscope extends Activity implements SensorEventListener {
     private TextView textViewAx;
     private TextView textViewAy;
     private TextView textViewAz;
+    private TextView fsTxt;
+
     //serie danych do wykresu
     private XYSeries seriesX;
     private XYSeries seriesY;
@@ -54,7 +56,7 @@ public class Gyroscope extends Activity implements SensorEventListener {
     private LinearLayout chartLayout;
 
     private Intent i;//intencja do otwarcia aktywnosci z wykresem
-
+    //zmienne potrzebne do tranformaty Fouriera
     private double[] tranformX;
     private double[] tranformY ;
     private double[] tranformZ;
@@ -62,6 +64,8 @@ public class Gyroscope extends Activity implements SensorEventListener {
     private ArrayList<Double> valuesX=new ArrayList<>();
     private ArrayList<Double> valuesY=new ArrayList<>();
     private ArrayList<Double> valuesZ=new ArrayList<>();
+
+    private ArrayList<Double> times=new ArrayList<>(); //zmienna na kroki czasowe.
 
 
 
@@ -76,6 +80,7 @@ public class Gyroscope extends Activity implements SensorEventListener {
         textViewAx = (TextView) findViewById(R.id.xTxt);
         textViewAy = (TextView) findViewById(R.id.yTxt);
         textViewAz = (TextView) findViewById(R.id.zTxt);
+        fsTxt =(TextView) findViewById(R.id.fsTxt);
 
         //serie danych do wykresu
         seriesX = new XYSeries("X");
@@ -127,6 +132,8 @@ public class Gyroscope extends Activity implements SensorEventListener {
                 valuesX.add((double)aX);
                 valuesY.add((double)aY);
                 valuesZ.add((double)aZ);
+
+                times.add((double) timeStamp);
 
                 //dodanie do serii danych wartosci skladowych prędkości kątowej
                 seriesX.add(counter, aX);
@@ -208,10 +215,22 @@ public class Gyroscope extends Activity implements SensorEventListener {
             seriesX.clear();
             seriesY.clear();
             seriesZ.clear();
+            times.clear();
             counter = 0;
 
         } else {
             myWakeLock.release(); //gdy zatrzymujemy pomiar zabraniamy zbierania danych przy zablokowanym ekranie
+            //obliczanie częstotliwości próbkowania
+            double sum=0; //zmienna na przechowywanie sumy
+            float  f=0; //zmienna na przechowywanie wyniku
+            //obliczanie kolejnych częstotliwości z odległości między punktami, które następnie sumujemy.
+            for (int i = 1; i < times.size()-1; i++) {
+                sum+=(1/(Math.abs((times.get(i))-(times.get(i-1)))/1000000000));
+            }
+
+            f=(float)(sum/(double) (times.size()-1));//uśrednienie sumy.
+
+            fsTxt.setText("fs = "+Float.toString(f)); //wyswietlenie wyniku.
 
         }
     }

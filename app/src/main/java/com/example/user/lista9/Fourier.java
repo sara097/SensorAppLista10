@@ -77,7 +77,7 @@ public class Fourier extends Activity {
         mrenderer.addSeriesRenderer(rendererY);
         mrenderer.addSeriesRenderer(rendererZ);
         mrenderer.setYAxisMax(15);
-        mrenderer.setYAxisMin(-10);
+        mrenderer.setYAxisMin(0);
         mrenderer.setShowGrid(true);
 
         //zainicjowanie elementów GUI

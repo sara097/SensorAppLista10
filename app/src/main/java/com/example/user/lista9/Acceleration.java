@@ -3,7 +3,6 @@ package com.example.user.lista9;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -41,6 +40,7 @@ public class Acceleration extends Activity implements SensorEventListener {
     private TextView textViewAx;
     private TextView textViewAy;
     private TextView textViewAz;
+    private TextView fsTxt;
 
     private Intent i;//intencja do otwarcia aktywnosci z wykresem
     //serie danych do wykresu z aktualnie zbieranych danych
@@ -52,6 +52,8 @@ public class Acceleration extends Activity implements SensorEventListener {
     private int counter = 0; //licznik (do osi OX wykresu)
     private ArrayList<Double> values = new ArrayList<>(); //lista tablicowa przechowująca obecnie zebrane wartosci
     // (wykorzystywana przy liczniku kroków)
+
+    private ArrayList<Double> times=new ArrayList<>(); //zmienna na kroki czasowe.
 
 
     @Override
@@ -73,6 +75,7 @@ public class Acceleration extends Activity implements SensorEventListener {
         textViewAx = (TextView) findViewById(R.id.accelerationTxt);
         textViewAy = (TextView) findViewById(R.id.accelerationTxt2);
         textViewAz = (TextView) findViewById(R.id.accelerationTxt3);
+        fsTxt =(TextView) findViewById(R.id.fsTxt);
 
         //ustawienie czujnika - akcelerometru
         mySensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -95,8 +98,24 @@ public class Acceleration extends Activity implements SensorEventListener {
 
         if (isRunning) {
             myWakeLock.acquire(); //jesli pomiar ma byc wykonany musimy tez pozwolic aplikacji na pomiary przy zablokowanym telefonie
+            fsTxt.setText("");
+            times.clear();
         } else {
             myWakeLock.release(); //gdy zatrzymujemy pomiar wylaczamy tę funkcję
+
+            //obliczanie częstotliwości próbkowania
+            double sum=0; //zmienna na przechowywanie sumy
+            float  f=0; //zmienna na przechowywanie wyniku
+            //obliczanie kolejnych częstotliwości z odległości między punktami, które następnie sumujemy.
+            for (int i = 1; i < times.size()-1; i++) {
+                sum+=(1/(Math.abs((times.get(i))-(times.get(i-1)))/1000000000));
+                System.out.println(sum);
+            }
+
+            f=(float)(sum/(double) (times.size()-1));//uśrednienie sumy.
+
+            fsTxt.setText("fs = "+Float.toString(f)); //wyswietlenie wyniku.
+
 
         }
     }
@@ -138,6 +157,8 @@ public class Acceleration extends Activity implements SensorEventListener {
                 seriesZ.add(counter, aZ);
                 //dodanie wartosci skladowej przyspieszenia do listy tablicowej
                 values.add((double) aZ);
+
+                times.add((double)timeStamp);
 
                 //zapisanie w zmiennej typu StringBuilder wartosci, zeby mozna bylo je zapisac do pliku
                 String toData = counter + ";" + aX + ";" + aY + ";" + aZ + "!";
