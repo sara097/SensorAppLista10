@@ -3,6 +3,7 @@ package com.example.user.lista9;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -48,9 +49,10 @@ public class Gyroscope extends Activity implements SensorEventListener {
     private TextView fsTxt;
 
     //serie danych do wykresu
-    private XYSeries seriesX;
-    private XYSeries seriesY;
-    private XYSeries seriesZ;
+    private XYSeries seriesX = new XYSeries("X");
+    private XYSeries seriesY = new XYSeries("Y");
+    private XYSeries seriesZ = new XYSeries("Z");
+
     //elementy potrzebne do wykresu
     private XYMultipleSeriesRenderer mrenderer;
     private LinearLayout chartLayout;
@@ -58,34 +60,83 @@ public class Gyroscope extends Activity implements SensorEventListener {
     private Intent i;//intencja do otwarcia aktywnosci z wykresem
     //zmienne potrzebne do tranformaty Fouriera
     private double[] tranformX;
-    private double[] tranformY ;
+    private double[] tranformY;
     private double[] tranformZ;
 
-    private ArrayList<Double> valuesX=new ArrayList<>();
-    private ArrayList<Double> valuesY=new ArrayList<>();
-    private ArrayList<Double> valuesZ=new ArrayList<>();
+    private ArrayList<Double> valuesX = new ArrayList<>();
+    private ArrayList<Double> valuesY = new ArrayList<>();
+    private ArrayList<Double> valuesZ = new ArrayList<>();
 
-    private ArrayList<Double> times=new ArrayList<>(); //zmienna na kroki czasowe.
+    private ArrayList<Double> times = new ArrayList<>(); //zmienna na kroki czasowe.
 
+    private boolean wasRunning; //zmienna, ktora nie pozwala by aplikacja działała w tle
 
+    @Override
+    protected void onSaveInstanceState(Bundle savedInstanceState) {
+        super.onSaveInstanceState(savedInstanceState);
+        //zapisanie danych sprzed zmiany orientacji
+        savedInstanceState.putSerializable("xseries", seriesX);
+        savedInstanceState.putSerializable("yseries", seriesY);
+        savedInstanceState.putSerializable("zseries", seriesZ);
+        savedInstanceState.putBoolean("isRunning", isRunning);
+        savedInstanceState.putInt("counter", counter);
+
+        double[] valuesXTable = arrayToTable(valuesX);
+        double[] valuesYTable = arrayToTable(valuesY);
+        double[] valuesZTable = arrayToTable(valuesZ);
+        double[] timesTable = arrayToTable(times);
+
+        savedInstanceState.putDoubleArray("valuesX", valuesXTable);
+        savedInstanceState.putDoubleArray("valuesY", valuesYTable);
+        savedInstanceState.putDoubleArray("valuesZ", valuesZTable);
+        savedInstanceState.putDoubleArray("times", timesTable);
+        savedInstanceState.putBoolean("wasRunning", wasRunning);
+        savedInstanceState.putBoolean("wakelock", myWakeLock.isHeld());
+
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         //metoda przy tworzeniu aktywności
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_gyroscope);
+
+        int orientation = getResources().getConfiguration().orientation;
+        if (orientation == Configuration.ORIENTATION_PORTRAIT)
+            setContentView(R.layout.activity_gyroscope);
+        else setContentView(R.layout.activity_gyroscope_hor);
+
+        boolean wakelockState = false;
+        //pobieranie stanów instancji, czyli wznawianie stanu aplikacji sprzed zmiany orientacji.
+        if (savedInstanceState != null) {
+            seriesX = (XYSeries) savedInstanceState.getSerializable("xseries");
+            seriesY = (XYSeries) savedInstanceState.getSerializable("yseries");
+            seriesZ = (XYSeries) savedInstanceState.getSerializable("zseries");
+            isRunning = savedInstanceState.getBoolean("isRunning");
+            counter = savedInstanceState.getInt("counter");
+
+            double[] valuesXTable = savedInstanceState.getDoubleArray("valuesX");
+            valuesX = tableToArray(valuesXTable);
+
+            double[] valuesYTable = savedInstanceState.getDoubleArray("valuesY");
+            valuesY = tableToArray(valuesYTable);
+
+            double[] valuesZTable = savedInstanceState.getDoubleArray("valuesZ");
+            valuesZ = tableToArray(valuesZTable);
+
+            double[] timesTable = savedInstanceState.getDoubleArray("times");
+            times = tableToArray(timesTable);
+            wasRunning = savedInstanceState.getBoolean("wasRunning");
+            wakelockState = savedInstanceState.getBoolean("wakelock"); //sprawdzenie stanu wakelocka
+
+        }
 
         i = new Intent(getBaseContext(), Fourier.class);
         //elementy gui
         textViewAx = (TextView) findViewById(R.id.xTxt);
         textViewAy = (TextView) findViewById(R.id.yTxt);
         textViewAz = (TextView) findViewById(R.id.zTxt);
-        fsTxt =(TextView) findViewById(R.id.fsTxt);
+        fsTxt = (TextView) findViewById(R.id.fsTxt);
 
-        //serie danych do wykresu
-        seriesX = new XYSeries("X");
-        seriesY = new XYSeries("Y");
-        seriesZ = new XYSeries("Z");
 
         //ustawienie czujnika - żyroskopu
         mySensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -95,7 +146,26 @@ public class Gyroscope extends Activity implements SensorEventListener {
         //wake lock zeby aplikacja mogla dzialac, gdy telefon zostanie zablokowany
         powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
         myWakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "myapp:test");
+        if (wakelockState)
+            myWakeLock.acquire(); //ustawienie stanu wake locka na ten sprzed zmiany orientacji
 
+    }
+
+    //metody zatrzymujące aplikację by nie działała w tle i uruchamiające ją od początku
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (wasRunning) {
+            isRunning = true;
+
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        wasRunning = isRunning;
+        isRunning = false;
     }
 
 
@@ -129,9 +199,9 @@ public class Gyroscope extends Activity implements SensorEventListener {
                 textViewAy.setText(y);
                 textViewAz.setText(z);
 
-                valuesX.add((double)aX);
-                valuesY.add((double)aY);
-                valuesZ.add((double)aZ);
+                valuesX.add((double) aX);
+                valuesY.add((double) aY);
+                valuesZ.add((double) aZ);
 
                 times.add((double) timeStamp);
 
@@ -200,7 +270,6 @@ public class Gyroscope extends Activity implements SensorEventListener {
         chartLayout.addView(chartView);
 
 
-
     }
 
     public void startMeasure(View view) {
@@ -221,40 +290,40 @@ public class Gyroscope extends Activity implements SensorEventListener {
         } else {
             myWakeLock.release(); //gdy zatrzymujemy pomiar zabraniamy zbierania danych przy zablokowanym ekranie
             //obliczanie częstotliwości próbkowania
-            double sum=0; //zmienna na przechowywanie sumy
-            float  f=0; //zmienna na przechowywanie wyniku
+            double sum = 0; //zmienna na przechowywanie sumy
+            float f = 0; //zmienna na przechowywanie wyniku
             //obliczanie kolejnych częstotliwości z odległości między punktami, które następnie sumujemy.
-            for (int i = 1; i < times.size()-1; i++) {
-                sum+=(1/(Math.abs((times.get(i))-(times.get(i-1)))/1000000000));
+            for (int i = 1; i < times.size() - 1; i++) {
+                sum += (1 / (Math.abs((times.get(i)) - (times.get(i - 1))) / 1000000000));
             }
 
-            f=(float)(sum/(double) (times.size()-1));//uśrednienie sumy.
+            f = (float) (sum / (double) (times.size() - 1));//uśrednienie sumy.
 
-            fsTxt.setText("fs = "+Float.toString(f)); //wyswietlenie wyniku.
+            fsTxt.setText("fs = " + Float.toString(f)); //wyswietlenie wyniku.
 
         }
     }
 
     public void fftClicked(View view) {
         //metoda po kliknieciu ktorej otwiera się intencja z aktywnoscia z wykresami Fouriera
-        isRunning=false;
+        isRunning = false;
 
-        int n=(int)(Math.log(valuesX.size())/Math.log(2.0)); //obliczanie dlugosci tablicy
-        if((2^n)<valuesX.size()) n+=1;
+        int n = (int) (Math.log(valuesX.size()) / Math.log(2.0)); //obliczanie dlugosci tablicy
+        if ((2 ^ n) < valuesX.size()) n += 1;
         //Fast Fourier Tranformate przyjmuje macierze ktore są potęgami dwójki
 
-        int len=(int)Math.pow(2,n);
+        int len = (int) Math.pow(2, n);
         tranformX = new double[len];
         tranformY = new double[len];
         tranformZ = new double[len];
 
         for (int i = 0; i < tranformX.length; i++) {
             //rozmiar macierzy do tranformaty, jesli jest wiekszy niz tablicy z danymi wypełniam zerami
-            if(valuesX.size()-1<i ){
+            if ((valuesX.size() - 1) < i) {
                 tranformX[i] = 0;
                 tranformY[i] = 0;
                 tranformZ[i] = 0;
-            }else{
+            } else {
                 tranformX[i] = valuesX.get(i);
                 tranformY[i] = valuesY.get(i);
                 tranformZ[i] = valuesZ.get(i);
@@ -262,9 +331,9 @@ public class Gyroscope extends Activity implements SensorEventListener {
 
         }
         //obliczam tranformaty
-        double [] xTranformed=FFT.computeFFT(tranformX);
-        double [] yTranformed=FFT.computeFFT(tranformY);
-        double [] zTranformed=FFT.computeFFT(tranformZ);
+        double[] xTranformed = FFT.computeFFT(tranformX);
+        double[] yTranformed = FFT.computeFFT(tranformY);
+        double[] zTranformed = FFT.computeFFT(tranformZ);
 
         //obliczone tablice przekazuje do aktywnosci
         i.putExtra("x", xTranformed);
@@ -273,5 +342,23 @@ public class Gyroscope extends Activity implements SensorEventListener {
         //rozpoczynam nowa aktywność
         startActivity(i);
 
+    }
+
+    //metoda pozwalająca na zamianę wartosci z tablicy na lsitę tablicową
+    private ArrayList<Double> tableToArray(double[] table) {
+        ArrayList<Double> array = new ArrayList<>();
+        for (int i = 0; i < table.length; i++) {
+            array.add(table[i]);
+        }
+        return array;
+    }
+
+    //metoda przepisująca wartosci z listy tablicowej do tablicy
+    private double[] arrayToTable(ArrayList<Double> array) {
+        double[] table = new double[array.size()];
+        for (int i = 0; i < array.size(); i++) {
+            table[i] = array.get(i);
+        }
+        return table;
     }
 }

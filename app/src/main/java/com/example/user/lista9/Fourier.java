@@ -1,6 +1,7 @@
 package com.example.user.lista9;
 
 import android.app.Activity;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.widget.LinearLayout;
@@ -30,7 +31,11 @@ public class Fourier extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_fourier);
+
+        int orientation = getResources().getConfiguration().orientation;
+        if (orientation == Configuration.ORIENTATION_PORTRAIT)
+            setContentView(R.layout.activity_fourier);
+        else setContentView(R.layout.activity_fourier_hor);
 
         //pobranie danych z poprzedniej aktywnosci
         Bundle extras = getIntent().getExtras();

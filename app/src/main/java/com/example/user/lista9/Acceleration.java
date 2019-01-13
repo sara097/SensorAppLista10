@@ -3,6 +3,7 @@ package com.example.user.lista9;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -44,29 +45,68 @@ public class Acceleration extends Activity implements SensorEventListener {
 
     private Intent i;//intencja do otwarcia aktywnosci z wykresem
     //serie danych do wykresu z aktualnie zbieranych danych
-    private XYSeries seriesX;
-    private XYSeries seriesY;
-    private XYSeries seriesZ;
+    private XYSeries seriesX = new XYSeries("X");
+    private XYSeries seriesY = new XYSeries("Y");
+    private XYSeries seriesZ = new XYSeries("Z");
 
     private StringBuilder data = new StringBuilder(); //string builder przechowujacy dane, ktore mozna nastepnie zapisac do pliku
     private int counter = 0; //licznik (do osi OX wykresu)
     private ArrayList<Double> values = new ArrayList<>(); //lista tablicowa przechowująca obecnie zebrane wartosci
     // (wykorzystywana przy liczniku kroków)
 
-    private ArrayList<Double> times=new ArrayList<>(); //zmienna na kroki czasowe.
+    private ArrayList<Double> times = new ArrayList<>(); //zmienna na kroki czasowe.
+
+    private boolean wasRunning; //zmienna, ktora nie pozwala by aplikacja działała w tle
 
 
+    @Override
+    protected void onSaveInstanceState(Bundle savedInstanceState) {
+        //zapisanie zmiennych
+        super.onSaveInstanceState(savedInstanceState);
+        savedInstanceState.putSerializable("xseries", seriesX);
+        savedInstanceState.putSerializable("yseries", seriesY);
+        savedInstanceState.putSerializable("zseries", seriesZ);
+        savedInstanceState.putBoolean("isRunning", isRunning);
+        savedInstanceState.putInt("counter", counter);
+
+        double[] valuesTable = arrayToTable(values);
+        double[] timesTable = arrayToTable(times);
+
+        savedInstanceState.putDoubleArray("values", valuesTable);
+        savedInstanceState.putDoubleArray("times", timesTable);
+        savedInstanceState.putBoolean("wasRunning", wasRunning);
+        savedInstanceState.putBoolean("wakelock", myWakeLock.isHeld());
+
+    }
+
+
+    //jak obroce telefon wiecej niz raz to sie wysypuje
+    //znowu nie liczy fs
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         //metoda przy tworzeniu aktywności
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_acceleration);
 
-        //serie danych do wykresu
-        seriesX = new XYSeries("X");
-        seriesY = new XYSeries("Y");
-        seriesZ = new XYSeries("Z");
+        int orientation = getResources().getConfiguration().orientation;
+        if (orientation == Configuration.ORIENTATION_PORTRAIT)
+            setContentView(R.layout.activity_acceleration);
+        else setContentView(R.layout.activity_acceleration_hor);
+        boolean wakelockState = false;
+        //pobieranie stanów instancji, czyli wznawianie stanu aplikacji sprzed zmiany orientacji.
+        if (savedInstanceState != null) {
+            seriesX = (XYSeries) savedInstanceState.getSerializable("xseries");
+            seriesY = (XYSeries) savedInstanceState.getSerializable("yseries");
+            seriesZ = (XYSeries) savedInstanceState.getSerializable("zseries");
+            isRunning = savedInstanceState.getBoolean("isRunning");
+            counter = savedInstanceState.getInt("counter");
+            double[] valuesTable = savedInstanceState.getDoubleArray("values");
+            values = tableToArray(valuesTable);
+            double[] timesTable = savedInstanceState.getDoubleArray("times");
+            times = tableToArray(timesTable);
+            wasRunning = savedInstanceState.getBoolean("wasRunning");
+            wakelockState = savedInstanceState.getBoolean("wakelock"); //sprawdzenie stanu wakelocka
 
+        }
         //utworzenie intencji do aktywnosci plotActivity
         i = new Intent(getBaseContext(), plotActivity.class);
 
@@ -75,7 +115,7 @@ public class Acceleration extends Activity implements SensorEventListener {
         textViewAx = (TextView) findViewById(R.id.accelerationTxt);
         textViewAy = (TextView) findViewById(R.id.accelerationTxt2);
         textViewAz = (TextView) findViewById(R.id.accelerationTxt3);
-        fsTxt =(TextView) findViewById(R.id.fsTxt);
+        fsTxt = (TextView) findViewById(R.id.fsTxt);
 
         //ustawienie czujnika - akcelerometru
         mySensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -87,13 +127,32 @@ public class Acceleration extends Activity implements SensorEventListener {
         powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
         myWakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "myapp:test");
 
+        if (wakelockState)
+            myWakeLock.acquire(); //ustawienie stanu wake locka na stan sprzed zmiany orientacji
 
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (wasRunning) {
+            isRunning = true;
+
+        }
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        wasRunning = isRunning;
+        isRunning = false;
     }
 
     public void onClickAction(View view) {
         //metoda po kliknieciu start
 
         Log.d(TAG, "Button pressed");
+
         isRunning = !isRunning; //zmienna ktora docyduje o tym, czy dokonujemy pomiaru czy tez nie
 
         if (isRunning) {
@@ -104,17 +163,17 @@ public class Acceleration extends Activity implements SensorEventListener {
             myWakeLock.release(); //gdy zatrzymujemy pomiar wylaczamy tę funkcję
 
             //obliczanie częstotliwości próbkowania
-            double sum=0; //zmienna na przechowywanie sumy
-            float  f=0; //zmienna na przechowywanie wyniku
+            double sum = 0; //zmienna na przechowywanie sumy
+            float f = 0; //zmienna na przechowywanie wyniku
             //obliczanie kolejnych częstotliwości z odległości między punktami, które następnie sumujemy.
-            for (int i = 1; i < times.size()-1; i++) {
-                sum+=(1/(Math.abs((times.get(i))-(times.get(i-1)))/1000000000));
+            for (int i = 1; i < times.size() - 1; i++) {
+                sum += (1 / (Math.abs((times.get(i)) - (times.get(i - 1))) / 1000000000));
                 System.out.println(sum);
             }
 
-            f=(float)(sum/(double) (times.size()-1));//uśrednienie sumy.
+            f = (float) (sum / (double) (times.size() - 1));//uśrednienie sumy.
 
-            fsTxt.setText("fs = "+Float.toString(f)); //wyswietlenie wyniku.
+            fsTxt.setText("fs = " + Float.toString(f)); //wyswietlenie wyniku.
 
 
         }
@@ -158,7 +217,7 @@ public class Acceleration extends Activity implements SensorEventListener {
                 //dodanie wartosci skladowej przyspieszenia do listy tablicowej
                 values.add((double) aZ);
 
-                times.add((double)timeStamp);
+                times.add((double) timeStamp);
 
                 //zapisanie w zmiennej typu StringBuilder wartosci, zeby mozna bylo je zapisac do pliku
                 String toData = counter + ";" + aX + ";" + aY + ";" + aZ + "!";
@@ -259,6 +318,24 @@ public class Acceleration extends Activity implements SensorEventListener {
 
         }
 
+    }
+
+    //metoda pozwalająca na zamianę wartosci z tablicy na lsitę tablicową
+    private ArrayList<Double> tableToArray(double[] table) {
+        ArrayList<Double> array = new ArrayList<>();
+        for (int i = 0; i < table.length; i++) {
+            array.add(table[i]);
+        }
+        return array;
+    }
+
+    //metoda przepisująca wartosci z listy tablicowej do tablicy
+    private double[] arrayToTable(ArrayList<Double> array) {
+        double[] table = new double[array.size()];
+        for (int i = 0; i < array.size(); i++) {
+            table[i] = array.get(i);
+        }
+        return table;
     }
 
 }
