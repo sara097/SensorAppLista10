@@ -1,9 +1,11 @@
 package com.example.user.lista9;
 
 import android.app.Activity;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -41,17 +43,39 @@ public class plotActivity extends Activity {
     //elementy GUI
     private EditText fileName;
     private TextView stepText;
+    private Button btnRead;
+    private Button btnCurr;
 
     private ArrayList<Double> valuesR; //lista tablicowa na wartosci odczytane z pliku
     protected int steps; //licznik kroków
     private double[] valsC; //tablica na wartosci zebrane przed chwilą
+    //zmienne, zapisujące czy wykres był narysowany czy nie
+    private boolean wasPlot = false;
+    private boolean wasPlotR = false;
+
+
+    @Override
+    protected void onSaveInstanceState(Bundle savedInstanceState) {
+        super.onSaveInstanceState(savedInstanceState);
+
+        //zapisanie zmiennych sprzed zmiany orientacji
+        savedInstanceState.putBoolean("wasPlot", wasPlot);
+        savedInstanceState.putBoolean("wasPlotR", wasPlotR);
+        savedInstanceState.putString("fileName", fileName.getText().toString());
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         //metoda onCreate
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_plot);
+
+        int orientation = getResources().getConfiguration().orientation;
+        if (orientation == Configuration.ORIENTATION_PORTRAIT)
+            setContentView(R.layout.activity_plot);
+        else setContentView(R.layout.activity_plot_hor);
+
+        fileName = (EditText) findViewById(R.id.editTxtFileName); //zainicjowanie EditText z nazwą  pliku
 
         steps = 0; //inicjacja licznika kroków
         valuesR = new ArrayList<>(); //inicjacja listy tablicowej, służącej do przechowywania danych odczytanych z pliku
@@ -63,6 +87,17 @@ public class plotActivity extends Activity {
             seriesY = (XYSeries) extras.getSerializable("dataY");
             seriesZ = (XYSeries) extras.getSerializable("dataZ");
             valsC = extras.getDoubleArray("steps");
+        }
+
+        if (savedInstanceState != null) {
+            //pobieranie stanów instancji, czyli wznawianie stanu aplikacji sprzed zmiany orientacji.
+            wasPlot = savedInstanceState.getBoolean("wasPlot");
+            wasPlotR = savedInstanceState.getBoolean("wasPlotR");
+            String name = savedInstanceState.getString("fileName");
+            if (name == null) fileName.setText("");
+            else fileName.setText(name);
+
+
         }
 
         //utworzenie rendererów serii danych i doprecyzowanie wyglądu serii danych na wykresie
@@ -98,9 +133,12 @@ public class plotActivity extends Activity {
 
         //zainicjowanie elementów GUI
         chartLayout = (LinearLayout) findViewById(R.id.chartLayout);
-        fileName = (EditText) findViewById(R.id.editTxtFileName);
-
+        btnCurr = (Button) findViewById(R.id.button9);
+        btnRead = (Button) findViewById(R.id.button8);
         stepText = (TextView) findViewById(R.id.stepsTxt);
+
+        if (wasPlot) btnCurr.performClick();
+        if (wasPlotR) btnRead.performClick();
 
     }
 
@@ -108,7 +146,7 @@ public class plotActivity extends Activity {
 
         //metoda służąca do obliczania ilości wykonanych kroków
         //parametrem metody jest tablica typu double z wartościami
-        steps=0;
+        steps = 0;
         //metoda obliczania ilosci kroków jest bardzo przyblizona.
         //wykres jest piłokształtny, zatem sprawdzam czy punkt jest pikiem biorąc otoczenie az 5 punktów
         //jesli jest on pikiem zwiekszam licznik kroków
@@ -122,6 +160,9 @@ public class plotActivity extends Activity {
     }
 
     public void drawCurrent(View view) {
+        //ustawienie ze wykres był narysowany a drugi dostepny typ wykresu nie
+        wasPlot = true;
+        wasPlotR = false;
         //metoda po kliknieciu ktorej rysowany jest wykres z przed chwila zebranych danych
 
         steps = 0; //zerowanie ilosci krokow
@@ -143,6 +184,9 @@ public class plotActivity extends Activity {
     }
 
     public void drawFromFile(View view) {
+        //ustawienie ze wykres był narysowany a drugi dostepny typ wykresu nie
+        wasPlotR = true;
+        wasPlot = false;
         //metoda po kliknieciu ktorej rysowany jest wykres z danych z pliku
         steps = 0; //zerowanie ilosci kroków
         chartLayout.removeAllViews(); //usuwanie poprzedniej zawartosci wykresu
